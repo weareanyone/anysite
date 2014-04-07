@@ -341,7 +341,7 @@
         loading: true,
         loadedCss: [],
         loadedJs: [],
-        jQueryUrl: '//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js',
+        jQueryUrl: '//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js',
         requiredJs: [
             'jquery.history.js', // History.js
             'PxLoader-min.js'    // PxLoader & PxLoader-Image
