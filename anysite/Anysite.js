@@ -43,13 +43,13 @@
                 contentImages = $contentPage.find('img').map(function(){return this.src}),
                 pageId = $contentPage.attr('id');
 
-            if (typeof self.site.init === 'function') self.site.init();
+            if (typeof self.site.init === 'function') self.site.init($contentPage);
             this.initAjax();
 
             contentImages = $.merge(self.site.images || [], contentImages);
             this.loadPage(pageId, contentImages, function() {
                 self.hideLoader();
-                $contentPage.fadeIn(800, function() {
+                $contentPage.fadeIn(self.o.fadeDuration, function() {
                     $(d.body).removeClass(self.o.loadingClass);
                     self.loading = false;
                 });
@@ -115,18 +115,18 @@
                 self.showLoader();
 
                 var $contentPage = $content.find(self.o.pageSelector +':first'),
+                    $fadeContainer = self.o.fadeContainer ? $(self.o.fadeContainer) : $contentPage,
                     State = History.getState(),
                     url = State.url,
                     relativeUrl = url.replace(rootUrl,''),
                     firstUrl = relativeUrl.split('/')[0];
 
-                $menu.find(self.o.navChildrenSelector).removeClass(self.o.activeClass)
-                    .has('a[href^="'+relativeUrl+'"],a[href="/'+relativeUrl+'"],'+
-                    'a[href^="/'+relativeUrl+'"],a[href^="/'+firstUrl+'"],a[href^="'+url+'"]')
-                    .filter(':first').addClass(self.o.activeClass);
-
-                $contentPage.fadeOut(800, function() {
+                $fadeContainer.fadeOut(self.o.fadeDuration, function() {
                     $content.stop(true, true);
+                    $menu.find(self.o.navChildrenSelector).removeClass(self.o.activeClass)
+                            .has('a[href^="'+relativeUrl+'"],a[href="/'+relativeUrl+'"],'+
+                                 'a[href^="/'+relativeUrl+'"],a[href^="/'+firstUrl+'"],a[href^="'+url+'"]')
+                            .filter(':first').addClass(self.o.activeClass);
 
                     $.ajax({
                         url: url,
@@ -134,12 +134,13 @@
                             var $data = $(documentHtml(data)),
                                 $dataBody = $data.find('.document-body:first'),
                                 $dataContent = $dataBody.find(self.o.contentSelector +':first'),
-                                $dataContentPage = $dataContent.find(self.o.pageSelector +':first').hide(),
+                                $dataContentPage = $dataContent.find(self.o.pageSelector +':first'),
                                 $scripts = $dataContent.find('.document-script'),
                                 contentImages = $dataContent.find('img').map(function(){return this.src}),
                                 contentHtml;
 
                             if ($scripts.length) $scripts.detach();
+                            if (!self.o.fadeContainer) $dataContentPage.hide();
 
                             contentHtml = $dataContent.html();
                             if (!contentHtml) {
@@ -147,9 +148,12 @@
                                 return false;
                             }
 
+
                             $content.stop(true, true);
                             $content.html(contentHtml).ajaxify();
+                            $('html,body').scrollTop(1);
                             $contentPage = $content.find(self.o.pageSelector);
+                            $fadeContainer = self.o.fadeContainer ? $(self.o.fadeContainer) : $contentPage;
 
                             self.loadPage($contentPage.attr('id'), contentImages, function() {
                                 $scripts.each(function() {
@@ -159,7 +163,7 @@
                                     $content.get(0).appendChild(scriptNode);
                                 });
                                 self.hideLoader();
-                                $contentPage.fadeIn(800, function() {
+                                $fadeContainer.fadeIn(self.o.fadeDuration, function() {
                                     self.loading = false;
                                 });
                             });
@@ -186,13 +190,14 @@
         },
         loadPage: function(pageId, images, success) {
             var self = this,
-                page = (pageId in self.site.pages) ? self.site.pages[pageId] : {},
+                page = ('pages' in self.site && pageId in self.site.pages) ? self.site.pages[pageId] : {},
+                $contentPage = $(self.o.pageSelector +':first'),
 
             // Initialize page after JS and Images load
                 jsReady = false, imagesReady = false,
                 pageReady = function() {
                     if (typeof success === 'function') success.apply(self);
-                    if (typeof page.init === 'function') page.init();
+                    if (typeof page.init === 'function') page.init($contentPage);
                 },
                 completeJs = function() {
                     jsReady = true;
@@ -242,7 +247,7 @@
                     '<div class="'+ this.o.loadingClass +'-progress">'+
                         '<div class="'+ this.o.loadingClass +'-bar"></div>'+
                     '</div>');
-            this.$loader.fadeIn(800);
+            this.$loader.fadeIn(this.o.fadeDuration);
         },
         showFileLoader: function() {
             this.$loader.find('.'+ this.o.loadingClass +'-percent,'+
@@ -341,14 +346,16 @@
         loading: true,
         loadedCss: [],
         loadedJs: [],
-        jQueryUrl: '//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js',
+        jQueryUrl: 'http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js',
         requiredJs: [
             'jquery.history.js', // History.js
             'PxLoader-min.js'    // PxLoader & PxLoader-Image
         ],
         defaults: {
             contentSelector: '#content',
-            pageSelector: '.content_page',
+            pageSelector: '.content-page',
+            fadeContainer: null,
+            fadeDuration: 800,
             navSelector: 'nav',
             navChildrenSelector: '> ul > li',
             activeClass: 'active',
